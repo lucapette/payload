@@ -310,6 +310,7 @@ export const POST =
         endpoints: req.payload.config.endpoints,
         request,
       })
+
       if (disableEndpoints) return disableEndpoints
 
       if (collection) {

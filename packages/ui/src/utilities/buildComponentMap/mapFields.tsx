@@ -19,12 +19,24 @@ import { fieldTypes } from '../../forms/fields/index.js'
 export const mapFields = (args: {
   DefaultCell?: React.FC<any>
   config: SanitizedConfig
+  /**
+   * If mapFields is used outside of collections, you might not want it to add an id field
+   */
+  disableAddingID?: boolean
   fieldSchema: FieldWithPath[]
   filter?: (field: Field) => boolean
   parentPath?: string
   readOnly?: boolean
 }): FieldMap => {
-  const { DefaultCell, config, fieldSchema, filter, parentPath, readOnly: readOnlyOverride } = args
+  const {
+    DefaultCell,
+    config,
+    disableAddingID,
+    fieldSchema,
+    filter,
+    parentPath,
+    readOnly: readOnlyOverride,
+  } = args
 
   const result: FieldMap = fieldSchema.reduce((acc, field): FieldMap => {
     const fieldIsPresentational = fieldIsPresentationalOnly(field)
@@ -52,7 +64,8 @@ export const mapFields = (args: {
           description:
             field.admin &&
             'description' in field.admin &&
-            typeof field.admin?.description === 'string'
+            (typeof field.admin?.description === 'string' ||
+              typeof field.admin?.description === 'object')
               ? field.admin.description
               : undefined,
         }
@@ -207,6 +220,10 @@ export const mapFields = (args: {
           maxRows: 'maxRows' in field ? field.maxRows : undefined,
           min: 'min' in field ? field.min : undefined,
           options: 'options' in field ? field.options : undefined,
+          placeholder:
+            'admin' in field && 'placeholder' in field.admin
+              ? field?.admin?.placeholder
+              : undefined,
           readOnly:
             'admin' in field && 'readOnly' in field.admin ? field.admin.readOnly : undefined,
           relationTo: 'relationTo' in field ? field.relationTo : undefined,
@@ -252,35 +269,8 @@ export const mapFields = (args: {
          * Handle RichText Field Components, Cell Components, and component maps
          */
         if (field.type === 'richText' && 'editor' in field) {
-          let RichTextFieldComponent
-          let RichTextCellComponent
-
-          const isLazyField = 'LazyFieldComponent' in field.editor
-          const isLazyCell = 'LazyCellComponent' in field.editor
-
-          if (isLazyField) {
-            RichTextFieldComponent = React.lazy(() => {
-              return 'LazyFieldComponent' in field.editor
-                ? field.editor.LazyFieldComponent().then((resolvedComponent) => ({
-                    default: resolvedComponent,
-                  }))
-                : null
-            })
-          } else if ('FieldComponent' in field.editor) {
-            RichTextFieldComponent = field.editor.FieldComponent
-          }
-
-          if (isLazyCell) {
-            RichTextCellComponent = React.lazy(() => {
-              return 'LazyCellComponent' in field.editor
-                ? field.editor.LazyCellComponent().then((resolvedComponent) => ({
-                    default: resolvedComponent,
-                  }))
-                : null
-            })
-          } else if ('CellComponent' in field.editor) {
-            RichTextCellComponent = field.editor.CellComponent
-          }
+          const RichTextFieldComponent = field.editor.FieldComponent
+          const RichTextCellComponent = field.editor.CellComponent
 
           if (typeof field.editor.generateComponentMap === 'function') {
             const result = field.editor.generateComponentMap({ config, schemaPath: path })
@@ -355,7 +345,7 @@ export const mapFields = (args: {
   const hasID =
     result.findIndex(({ name, isFieldAffectingData }) => isFieldAffectingData && name === 'id') > -1
 
-  if (!hasID) {
+  if (!disableAddingID && !hasID) {
     result.push({
       name: 'id',
       type: 'text',
