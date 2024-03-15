@@ -38,6 +38,7 @@ import findVersionByIDResolver from '../resolvers/collections/findVersionByID.js
 import findVersionsResolver from '../resolvers/collections/findVersions.js'
 import restoreVersionResolver from '../resolvers/collections/restoreVersion.js'
 import updateResolver from '../resolvers/collections/update.js'
+import duplicateResolver from '../resolvers/collections/duplicate.js'
 
 type InitCollectionsGraphQLArgs = {
   config: SanitizedConfig
@@ -234,6 +235,14 @@ function initCollectionsGraphQL({ config, graphqlResult }: InitCollectionsGraphQ
       },
       resolve: getDeleteResolver(collection),
       type: collection.graphQL.type,
+    }
+
+    graphqlResult.Mutation.fields[`duplicate${singularName}`] = {
+      type: collection.graphQL.type,
+      args: {
+        id: { type: new GraphQLNonNull(idType) },
+      },
+      resolve: duplicateResolver(collection),
     }
 
     if (collectionConfig.versions) {
