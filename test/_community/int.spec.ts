@@ -55,6 +55,28 @@ describe('_Community Tests', () => {
     expect(newPost.text).toEqual('LOCAL API EXAMPLE')
   })
 
+  it('local API example with contains', async () => {
+    const newPost = await payload.create({
+      collection: postsSlug,
+      data: {
+        text: 'LOCAL API EXAMPLE +LR',
+      },
+    })
+
+    expect(newPost.text).toEqual('LOCAL API EXAMPLE +LR')
+
+    const posts = await payload.find({
+      collection: postsSlug,
+      where: {
+        text: {
+          contains: '+LR',
+        },
+      },
+    })
+
+    expect(posts.docs).toHaveLength(1)
+  })
+
   it('rest API example', async () => {
     const newPost = await fetch(`${apiUrl}/${postsSlug}`, {
       method: 'POST',
